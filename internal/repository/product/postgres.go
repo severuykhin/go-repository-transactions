@@ -52,3 +52,30 @@ func (r *productPgRepo) Create(name string) (*entities.Product, error) {
 	return &product, nil
 
 }
+
+func (r *productPgRepo) GetOne(id string) (*entities.Product, error) {
+	product := entities.Product{}
+
+	query := sq.
+		Select("*").
+		From("product").
+		Where(sq.Eq{
+			"id": id,
+		})
+
+	sql, values, err := query.ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	sql = r.db.Rebind(sql)
+
+	res := r.db.QueryRow(sql, values...)
+	err = res.Scan(&product.Id, &product.Name)
+
+	if err != nil {
+		return &product, err
+	}
+
+	return &product, nil
+}

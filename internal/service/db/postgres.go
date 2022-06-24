@@ -1,4 +1,4 @@
-package transaction
+package db
 
 import (
 	"context"
@@ -11,24 +11,24 @@ import (
 	"github.com/pkg/errors"
 )
 
-type PostgresTrasactionService struct {
+type PostgresDbService struct {
 	connection *sqlx.DB
 }
 
-func NewPostgresTransactionService(dbConnection *sqlx.DB) *PostgresTrasactionService {
-	return &PostgresTrasactionService{
+func NewPostgresDbService(dbConnection *sqlx.DB) *PostgresDbService {
+	return &PostgresDbService{
 		connection: dbConnection,
 	}
 }
 
-func (s *PostgresTrasactionService) DoInTransaction(trFunc common.TransactionClosure) (interface{}, error) {
+func (s *PostgresDbService) DoInTransaction(trFunc common.TransactionClosure) (interface{}, error) {
 	tx, err := s.connection.BeginTx(context.TODO(), nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	repoRegistry := registry.NewPgRepoRegistry(postgres.NewPgDbClient(s.connection, tx))
+	repoRegistry := registry.NewPgRepoRegistry(postgres.NewPgDbTransactionClient(s.connection, tx))
 
 	res, err := trFunc(repoRegistry)
 
@@ -42,6 +42,16 @@ func (s *PostgresTrasactionService) DoInTransaction(trFunc common.TransactionClo
 		return nil, err
 	}
 
+	return res, nil
+}
+
+func (s *PostgresDbService) Do(f common.Closure) (interface{}, error) {
+	repoRegistry := registry.NewPgRepoRegistry(postgres.NewPgDbClient(s.connection))
+	res, err := f(repoRegistry)
+
+	if err != nil {
+		return nil, err
+	}
 	return res, nil
 }
 

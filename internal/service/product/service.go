@@ -6,18 +6,18 @@ import (
 )
 
 type productService struct {
-	trxService common.TransactionService
+	dbService common.DbService
 }
 
-func NewProductService(trxService common.TransactionService) *productService {
+func NewProductService(dbService common.DbService) *productService {
 	return &productService{
-		trxService: trxService,
+		dbService: dbService,
 	}
 }
 
 func (s productService) CreateProduct(name string, attributes map[string]string) (*entities.Product, error) {
 
-	out, err := s.trxService.DoInTransaction(func(registry common.RepoRegistry) (interface{}, error) {
+	out, err := s.dbService.DoInTransaction(func(registry common.RepoRegistry) (interface{}, error) {
 
 		productRepo := registry.GetProductRepo()
 		attributesRepo := registry.GetAttributeRepo()
@@ -47,5 +47,27 @@ func (s productService) CreateProduct(name string, attributes map[string]string)
 
 	res := out.(*entities.Product)
 
+	return res, nil
+}
+
+func (s productService) GetProduct(id string) (*entities.Product, error) {
+	out, err := s.dbService.Do(func(registry common.RepoRegistry) (interface{}, error) {
+		productRepo := registry.GetProductRepo()
+		// attributesRepo := registry.GetAttributeRepo()
+
+		product, err := productRepo.GetOne(id)
+		if err != nil {
+			return nil, err
+		}
+
+		return product, nil
+
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := out.(*entities.Product)
 	return res, nil
 }
